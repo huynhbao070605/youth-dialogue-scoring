@@ -56,7 +56,8 @@ export function toGroupResult(group: Awaited<ReturnType<typeof getDashboardData>
     feasibilityTotal: group.aggregate.feasibilityTotal,
     youthRoleTotal: group.aggregate.youthRoleTotal,
     qaTotal: group.aggregate.qaTotal,
-    impressionScore: group.impressionScore,
+    directVotingScore: group.directVotingScore,
+    mediaScore: group.mediaScore,
     presentationDurationSeconds: group.presentationDurationSeconds,
   };
 }

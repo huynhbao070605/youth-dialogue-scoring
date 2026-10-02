@@ -119,13 +119,3 @@ export async function updateTargetTime(formData: FormData) {
   revalidatePath("/media");
   revalidatePath("/results");
 }
-
-export async function updatePotentialAwards(formData: FormData) {
-  const ids = formData.getAll("groupIds").map(String);
-  if (ids.length > 2) throw new Error("Chỉ được chọn tối đa 2 nhóm.");
-  await prisma.$transaction([
-    prisma.group.updateMany({ data: { isPotentialAward: false } }),
-    prisma.group.updateMany({ where: { id: { in: ids } }, data: { isPotentialAward: true } }),
-  ]);
-  revalidatePath("/results");
-}

@@ -38,12 +38,14 @@ export interface GroupResult {
   feasibilityTotal: number;
   youthRoleTotal: number;
   qaTotal: number;
-  impressionScore: number;
+  directVotingScore: number;
+  mediaScore: number;
   presentationDurationSeconds: number | null;
 }
 
 export type TieBreaker =
-  | "impressionScore"
+  | "directVotingScore"
+  | "mediaScore"
   | "averageBackground"
   | "averagePresentation"
   | "averageFeasibility"
@@ -55,6 +57,14 @@ export interface AwardResult {
   status: "winner" | "manual_decision_required" | "no_data";
   winnerIds: string[];
   decidedBy: TieBreaker | null;
+}
+
+export interface AwardAllocation {
+  comprehensive: AwardResult;
+  youthVoice: AwardResult;
+  galleryWalk: AwardResult;
+  mediaVoice: AwardResult;
+  potential: AwardResult;
 }
 
 export function calculateScoreTotals(scores: ScoreValues) {
@@ -183,9 +193,9 @@ function timeCompliance(targetSeconds?: number | null): Comparator {
   };
 }
 
-export function rankImpressionAward(groups: GroupResult[]): AwardResult {
+export function rankGalleryWalkAward(groups: GroupResult[]): AwardResult {
   return resolveAward(groups, [
-    { name: "impressionScore", compare: compareNumber((group) => group.impressionScore) },
+    { name: "directVotingScore", compare: compareNumber((group) => group.directVotingScore) },
     { name: "averageBackground", compare: averageBackground },
   ]);
 }
@@ -206,4 +216,48 @@ export function rankYouthVoiceAward(groups: GroupResult[], targetSeconds?: numbe
     { name: "averageQa", compare: averageQa },
     { name: "timeCompliance", compare: timeCompliance(targetSeconds) },
   ]);
+}
+
+const pendingAward = (): AwardResult => ({ status: "no_data", winnerIds: [], decidedBy: null });
+
+export function allocateAwards(groups: GroupResult[], targetSeconds?: number | null): AwardAllocation {
+  const allocation: AwardAllocation = {
+    comprehensive: pendingAward(),
+    youthVoice: pendingAward(),
+    galleryWalk: pendingAward(),
+    mediaVoice: pendingAward(),
+    potential: pendingAward(),
+  };
+  let remaining = [...groups];
+
+  allocation.comprehensive = rankComprehensiveAward(remaining, targetSeconds);
+  if (allocation.comprehensive.status !== "winner") return allocation;
+  remaining = remaining.filter((group) => group.id !== allocation.comprehensive.winnerIds[0]);
+
+  allocation.youthVoice = rankYouthVoiceAward(remaining, targetSeconds);
+  if (allocation.youthVoice.status !== "winner") return allocation;
+  remaining = remaining.filter((group) => group.id !== allocation.youthVoice.winnerIds[0]);
+
+  allocation.galleryWalk = rankGalleryWalkAward(remaining);
+  if (allocation.galleryWalk.status !== "winner") return allocation;
+  remaining = remaining.filter((group) => group.id !== allocation.galleryWalk.winnerIds[0]);
+
+  if (remaining.length !== 2) return allocation;
+  allocation.mediaVoice = resolveAward(remaining, [
+    { name: "mediaScore", compare: compareNumber((group) => group.mediaScore) },
+  ]);
+  if (allocation.mediaVoice.status !== "winner") {
+    allocation.potential = {
+      status: "manual_decision_required",
+      winnerIds: remaining.map((group) => group.id),
+      decidedBy: null,
+    };
+    return allocation;
+  }
+
+  const potentialWinner = remaining.find((group) => group.id !== allocation.mediaVoice.winnerIds[0]);
+  allocation.potential = potentialWinner
+    ? { status: "winner", winnerIds: [potentialWinner.id], decidedBy: null }
+    : pendingAward();
+  return allocation;
 }
