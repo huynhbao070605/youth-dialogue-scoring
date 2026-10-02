@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Group {
+  id                          String   @id @default(cuid())
+  name                        String
+  initiative                  String
+  notes                       String   @default("")
+  likes                       Int      @default(0)
+  comments                    Int      @default(0)
+  shares                      Int      @default(0)
+  directVotingScore           Int      @default(0)
+  presentationDurationSeconds Int?
+  isPotentialAward            Boolean  @default(false)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+  scores                      Score[]
+}
+
+model Judge {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  scores    Score[]
+}
+
+model Score {
+  id                String   @id @default(cuid())
+  groupId           String
+  judgeId           String
+  coreProblem       Int
+  problemTreeLogic  Int
+  localEvidence     Int
+  feasibility       Int
+  youthRole         Int
+  solutionStructure Int
+  visualLayout      Int
+  presentation      Int
+  qa                Int
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  group             Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  judge             Judge    @relation(fields: [judgeId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, judgeId])
+}
+
+model Setting {
+  id                        Int  @id @default(1)
+  targetPresentationSeconds Int?
+}
