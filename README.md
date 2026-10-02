@@ -4,22 +4,21 @@
 
 ## Chạy local
 
+Tạo `.env` từ `.env.example`, đặt `DATABASE_URL` là chuỗi kết nối có pooling và `DIRECT_URL` là chuỗi kết nối trực tiếp tới cùng PostgreSQL database, rồi chạy:
+
 ```bash
 npm install
-npm run db:push
+npm run db:migrate
 npm run dev
 ```
 
 Mở `http://localhost:3000`.
 
-Dữ liệu SQLite mặc định nằm tại `prisma/dev.db`. Để chạy bản production local:
+## Triển khai Vercel
 
-```bash
-npm run build
-npm start
-```
-
-Sao lưu hoặc khôi phục bằng cách dừng ứng dụng rồi sao chép file `prisma/dev.db`.
+- Thêm `DATABASE_URL` (pooled) và `DIRECT_URL` (direct/non-pooling) trong Vercel Project Settings → Environment Variables.
+- Đặt Build Command thành `npm run db:deploy && npm run build`.
+- Deploy lại dự án. Migration production được áp dụng bằng `prisma migrate deploy`.
 
 ## Kiểm tra
 
